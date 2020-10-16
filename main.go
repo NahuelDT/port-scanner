@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/NahuelDT/port-scanner.git/port"
 
@@ -47,7 +48,9 @@ func main() {
 			},
 		},
 	}
-
+	start := time.Now()
 	app.Run(os.Args)
+	elapsed := time.Since(start)
 
+	fmt.Println("Scan duration:", elapsed)
 }
