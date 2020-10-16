@@ -2,21 +2,30 @@ package port
 
 import (
 	"net"
+	"sync"
 	"time"
 )
 
+//Scanner -
 type Scanner interface {
 	DialTimeout(network, address string, timeout time.Duration) (net.Conn, error)
 	LookupIP(host string) ([]net.IP, error)
 }
 
-type PortScanner struct {
+type HostScanner interface {
+	ScanPort(protocol, hostname, service string, port int, resultChannel chan Result, wg *sync.WaitGroup)
+	ScanPorts(hostname string, ports Range, threads int) (ScanResult, error)
+	DisplayScanResult(result ScanResult)
+	GetOpenPorts(hostname string, ports Range, threads int)
 }
 
-func (p *PortScanner) DialTimeout(network, address string, timeout time.Duration) (net.Conn, error) {
+type NetScanner struct {
+}
+
+func (p *NetScanner) DialTimeout(network, address string, timeout time.Duration) (net.Conn, error) {
 	return net.DialTimeout(network, address, timeout)
 }
 
-func (p *PortScanner) LookupIP(host string) ([]net.IP, error) {
+func (p *NetScanner) LookupIP(host string) ([]net.IP, error) {
 	return net.LookupIP(host)
 }

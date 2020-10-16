@@ -48,15 +48,16 @@ func main() {
 				end := c.Int("end")
 				threads := c.Int("t")
 				rng := port.Range{Start: start, End: end}
-
-				port.GetOpenPorts(host, rng, threads)
+				portScanner := port.PortScanner{}
+				portScanner.GetOpenPorts(host, rng, threads)
 				return
 			},
 		},
 	}
 	start := time.Now()
-	app.Run(os.Args)
-	elapsed := time.Since(start)
 
+	app.Run(os.Args)
+
+	elapsed := time.Since(start)
 	fmt.Println("Scan duration:", elapsed)
 }

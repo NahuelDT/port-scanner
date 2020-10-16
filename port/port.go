@@ -11,6 +11,9 @@ import (
 	"time"
 )
 
+type PortScanner struct {
+}
+
 //Result port scan results
 type Result struct {
 	Port    int
@@ -30,7 +33,7 @@ type ScanResult struct {
 	results  []Result
 }
 
-var portScanner Scanner = &PortScanner{}
+var netScanner Scanner = &NetScanner{}
 
 //Common ports in range 1 to 1024
 var common = map[int]string{
@@ -68,18 +71,18 @@ var common = map[int]string{
 }
 
 //ScanPort Scans single port, returs a Result
-func ScanPort(protocol, hostname, service string, port int, resultChannel chan Result, wg *sync.WaitGroup) {
+func (p *PortScanner) ScanPort(protocol, hostname, service string, port int, resultChannel chan Result, wg *sync.WaitGroup) {
 	defer wg.Done()
 	wg.Add(1)
 	result := Result{Port: port, Service: service}
 	address := hostname + ":" + strconv.Itoa(port)
 	randTime := time.Duration(rand.Int31n(1)) + 1
 
-	conn, err := portScanner.DialTimeout(protocol, address, randTime*time.Second)
+	conn, err := netScanner.DialTimeout(protocol, address, randTime*time.Second)
 	if err != nil {
 		if strings.Contains(err.Error(), "too many open files") {
 			time.Sleep(1 * time.Second)
-			ScanPort("tcp", hostname, service, port, resultChannel, wg)
+			p.ScanPort("tcp", hostname, service, port, resultChannel, wg)
 		} else {
 			//fmt.Println(port, "closed") //INDICATE CLOSED PORTS
 			// fmt.Println("ERR", err)
@@ -98,7 +101,7 @@ func ScanPort(protocol, hostname, service string, port int, resultChannel chan R
 }
 
 //ScanPorts Scans all ports of hostname in range the range given, returns a ScanResult
-func ScanPorts(hostname string, ports Range, threads int) (ScanResult, error) {
+func (p *PortScanner) ScanPorts(hostname string, ports Range, threads int) (ScanResult, error) {
 	var results []Result
 	var scanned ScanResult
 	var wgRight sync.WaitGroup
@@ -108,20 +111,20 @@ func ScanPorts(hostname string, ports Range, threads int) (ScanResult, error) {
 
 	resultChannel := make(chan Result, ports.End-ports.Start+1)
 
-	addr, err := portScanner.LookupIP(hostname)
+	addr, err := netScanner.LookupIP(hostname)
 	if err != nil {
 		return scanned, err
 	}
 
 	for i := ports.Start; i <= ports.End; i = i + 2 {
 		service, _ := common[i]
-		go ScanPort("tcp", hostname, service, i, resultChannel, &wgRight)
+		go p.ScanPort("tcp", hostname, service, i, resultChannel, &wgRight)
 	}
 	wgRight.Wait()
 
 	for i := ports.Start + 1; i <= ports.End; i = i + 2 {
 		service, _ := common[i]
-		go ScanPort("tcp", hostname, service, i, resultChannel, &wgLeft)
+		go p.ScanPort("tcp", hostname, service, i, resultChannel, &wgLeft)
 	}
 	wgLeft.Wait()
 
@@ -141,7 +144,7 @@ func ScanPorts(hostname string, ports Range, threads int) (ScanResult, error) {
 }
 
 //DisplayScanResult Displays the scan result
-func DisplayScanResult(result ScanResult) {
+func (p *PortScanner) DisplayScanResult(result ScanResult) {
 	ip := result.ip[len(result.ip)-1]
 	fmt.Printf("Open ports for %s (%s)\n", result.hostname, ip.String())
 	for _, v := range result.results {
@@ -152,11 +155,11 @@ func DisplayScanResult(result ScanResult) {
 }
 
 //GetOpenPorts Calls ScanPorts and Displays the Results
-func GetOpenPorts(hostname string, ports Range, threads int) {
-	scanned, err := ScanPorts(hostname, ports, threads)
+func (p *PortScanner) GetOpenPorts(hostname string, ports Range, threads int) {
+	scanned, err := p.ScanPorts(hostname, ports, threads)
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		DisplayScanResult(scanned)
+		p.DisplayScanResult(scanned)
 	}
 }
