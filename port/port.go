@@ -2,6 +2,7 @@ package port
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
 	"runtime"
 	"strconv"
@@ -72,8 +73,9 @@ func ScanPort(protocol, hostname, service string, port int, resultChannel chan R
 	wg.Add(1)
 	result := Result{Port: port, Service: service}
 	address := hostname + ":" + strconv.Itoa(port)
+	randTime := time.Duration(rand.Int31n(1)) + 1
 
-	conn, err := portScanner.DialTimeout(protocol, address, 2*time.Second)
+	conn, err := portScanner.DialTimeout(protocol, address, randTime*time.Second)
 	if err != nil {
 		if strings.Contains(err.Error(), "too many open files") {
 			time.Sleep(1 * time.Second)
@@ -99,7 +101,8 @@ func ScanPort(protocol, hostname, service string, port int, resultChannel chan R
 func ScanPorts(hostname string, ports Range, threads int) (ScanResult, error) {
 	var results []Result
 	var scanned ScanResult
-	var wg sync.WaitGroup
+	var wgRight sync.WaitGroup
+	var wgLeft sync.WaitGroup
 
 	runtime.GOMAXPROCS(threads)
 
@@ -110,11 +113,17 @@ func ScanPorts(hostname string, ports Range, threads int) (ScanResult, error) {
 		return scanned, err
 	}
 
-	for i := ports.Start; i <= ports.End; i++ {
+	for i := ports.Start; i <= ports.End; i = i + 2 {
 		service, _ := common[i]
-		go ScanPort("tcp", hostname, service, i, resultChannel, &wg)
+		go ScanPort("tcp", hostname, service, i, resultChannel, &wgRight)
 	}
-	wg.Wait()
+	wgRight.Wait()
+
+	for i := ports.Start + 1; i <= ports.End; i = i + 2 {
+		service, _ := common[i]
+		go ScanPort("tcp", hostname, service, i, resultChannel, &wgLeft)
+	}
+	wgLeft.Wait()
 
 	close(resultChannel)
 
