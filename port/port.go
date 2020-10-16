@@ -107,6 +107,7 @@ func DisplayScanResult(result ScanResult) {
 
 //GetOpenPorts Calls ScanPorts and Displays the Results
 func GetOpenPorts(hostname string, ports Range) {
+
 	scanned, ok := ScanPorts(hostname, ports)
 	if ok {
 		DisplayScanResult(scanned)
