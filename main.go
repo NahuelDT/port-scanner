@@ -8,8 +8,6 @@ import (
 
 func main() {
 	fmt.Println("Hello WildLife!")
-
-	result := port.ScanPort("stackoverflow.com", 30)
-	fmt.Println(result)
+	port.GetOpenPorts("scanme.nmap.org", port.Range{Start: 20, End: 100})
 
 }
