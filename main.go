@@ -28,7 +28,12 @@ func main() {
 		},
 		cli.IntFlag{
 			Name:  "end",
-			Value: 100,
+			Value: 1024,
+		},
+
+		cli.IntFlag{
+			Name:  "t",
+			Value: 5,
 		},
 	}
 
@@ -41,9 +46,10 @@ func main() {
 				host := c.String("host")
 				start := c.Int("start")
 				end := c.Int("end")
+				threads := c.Int("t")
 				rng := port.Range{Start: start, End: end}
 
-				port.GetOpenPorts(host, rng)
+				port.GetOpenPorts(host, rng, threads)
 				return
 			},
 		},
