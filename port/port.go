@@ -109,7 +109,7 @@ func (p *PortScanner) ScanPorts(hostname string, ports Range, threads int) (Scan
 
 	runtime.GOMAXPROCS(threads)
 
-	resultChannel := make(chan Result, ports.End-ports.Start+1)
+	resultChannel := make(chan Result, (ports.End-ports.Start)+1)
 
 	addr, err := netScanner.LookupIP(hostname)
 	if err != nil {
@@ -131,7 +131,6 @@ func (p *PortScanner) ScanPorts(hostname string, ports Range, threads int) (Scan
 	close(resultChannel)
 
 	for result := range resultChannel {
-
 		results = append(results, result)
 	}
 
