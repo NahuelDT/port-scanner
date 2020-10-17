@@ -46,7 +46,7 @@ Docker build -t port-scanner .
 Run main.go using the command scan
 
 ```bash
-go run main.go scan -host 
+go run main.go scan -host stackoverflow.com
 ```
 ### Docker Build 
 Run the Docker image
