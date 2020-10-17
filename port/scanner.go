@@ -13,8 +13,8 @@ type Scanner interface {
 }
 
 type HostScanner interface {
-	ScanPort(protocol, hostname, service string, port int, resultChannel chan Result, wg *sync.WaitGroup)
-	ScanPorts(hostname string, ports Range, threads int) (ScanResult, error)
+	ScanPort(protocol, hostname, service string, port int, resultChannel chan Result, wg *sync.WaitGroup, fireWallDetectionOff bool)
+	ScanPorts(hostname string, ports Range, threads int, fireWallDetectionOff bool) (ScanResult, error)
 	DisplayScanResult(result ScanResult)
 	GetOpenPorts(hostname string, ports Range, threads int)
 }

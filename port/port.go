@@ -71,18 +71,22 @@ var common = map[int]string{
 }
 
 //ScanPort Scans single port, returs a Result
-func (p *PortScanner) ScanPort(protocol, hostname, service string, port int, resultChannel chan Result, wg *sync.WaitGroup) {
+func (p *PortScanner) ScanPort(protocol, hostname, service string, port int, resultChannel chan Result, wg *sync.WaitGroup, fireWallDetectionOff bool) {
 	defer wg.Done()
 	wg.Add(1)
 	result := Result{Port: port, Service: service}
 	address := hostname + ":" + strconv.Itoa(port)
 	randTime := time.Duration(rand.Int31n(1)) + 1
 
+	if fireWallDetectionOff == true {
+		randTime = time.Duration(1)
+	}
+
 	conn, err := netScanner.DialTimeout(protocol, address, randTime*time.Second)
 	if err != nil {
 		if strings.Contains(err.Error(), "too many open files") {
 			time.Sleep(1 * time.Second)
-			p.ScanPort("tcp", hostname, service, port, resultChannel, wg)
+			p.ScanPort("tcp", hostname, service, port, resultChannel, wg, fireWallDetectionOff)
 		} else {
 			//fmt.Println(port, "closed") //INDICATE CLOSED PORTS
 			result.State = false
@@ -101,7 +105,7 @@ func (p *PortScanner) ScanPort(protocol, hostname, service string, port int, res
 }
 
 //ScanPorts Scans all ports of hostname in range the range given, returns a ScanResult
-func (p *PortScanner) ScanPorts(hostname string, ports Range, threads int) (ScanResult, error) {
+func (p *PortScanner) ScanPorts(hostname string, ports Range, threads int, fireWallDetectionOff bool) (ScanResult, error) {
 	var results []Result
 	var scanned ScanResult
 	var wgRight sync.WaitGroup
@@ -114,17 +118,28 @@ func (p *PortScanner) ScanPorts(hostname string, ports Range, threads int) (Scan
 		return scanned, err
 	}
 
-	for i := ports.Start; i <= ports.End; i = i + 2 {
-		service, _ := common[i]
-		go p.ScanPort("tcp", hostname, service, i, resultChannel, &wgRight)
-	}
-	wgRight.Wait()
+	if fireWallDetectionOff == false {
 
-	for i := ports.Start + 1; i <= ports.End; i = i + 2 {
-		service, _ := common[i]
-		go p.ScanPort("tcp", hostname, service, i, resultChannel, &wgLeft)
+		for i := ports.Start; i <= ports.End; i = i + 2 {
+			service, _ := common[i]
+			go p.ScanPort("tcp", hostname, service, i, resultChannel, &wgRight, fireWallDetectionOff)
+		}
+		wgRight.Wait()
+
+		for i := ports.Start + 1; i <= ports.End; i = i + 2 {
+			service, _ := common[i]
+			go p.ScanPort("tcp", hostname, service, i, resultChannel, &wgLeft, fireWallDetectionOff)
+		}
+		wgLeft.Wait()
+
+	} else {
+
+		for i := ports.Start; i <= ports.End; i++ {
+			service, _ := common[i]
+			go p.ScanPort("tcp", hostname, service, i, resultChannel, &wgRight, fireWallDetectionOff)
+		}
+		wgRight.Wait()
 	}
-	wgLeft.Wait()
 
 	close(resultChannel)
 	for result := range resultChannel {
@@ -151,8 +166,8 @@ func (p *PortScanner) DisplayScanResult(result ScanResult) {
 }
 
 //GetOpenPorts Calls ScanPorts and Displays the Results
-func (p *PortScanner) GetOpenPorts(hostname string, ports Range, threads int) {
-	scanned, err := p.ScanPorts(hostname, ports, threads)
+func (p *PortScanner) GetOpenPorts(hostname string, ports Range, threads int, fireWallDetectionOff bool) {
+	scanned, err := p.ScanPorts(hostname, ports, threads, fireWallDetectionOff)
 	if err != nil {
 		fmt.Println(err)
 	} else {

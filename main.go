@@ -35,6 +35,10 @@ func main() {
 			Name:  "t",
 			Value: 5,
 		},
+
+		cli.BoolFlag{
+			Name: "f",
+		},
 	}
 
 	app.Commands = []cli.Command{
@@ -47,9 +51,11 @@ func main() {
 				start := c.Int("start")
 				end := c.Int("end")
 				threads := c.Int("t")
+				fireWallDetectionOff := c.Bool("f")
 				rng := port.Range{Start: start, End: end}
+
 				portScanner := port.PortScanner{}
-				portScanner.GetOpenPorts(host, rng, threads)
+				portScanner.GetOpenPorts(host, rng, threads, fireWallDetectionOff)
 				return
 			},
 		},
