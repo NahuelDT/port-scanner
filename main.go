@@ -54,10 +54,9 @@ func main() {
 			},
 		},
 	}
+
 	start := time.Now()
-
 	app.Run(os.Args)
-
 	elapsed := time.Since(start)
 	fmt.Println("Scan duration:", elapsed)
 }

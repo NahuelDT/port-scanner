@@ -85,16 +85,16 @@ func (p *PortScanner) ScanPort(protocol, hostname, service string, port int, res
 			p.ScanPort("tcp", hostname, service, port, resultChannel, wg)
 		} else {
 			//fmt.Println(port, "closed") //INDICATE CLOSED PORTS
-			// fmt.Println("ERR", err)
 			result.State = false
 			resultChannel <- result
 		}
 		return
 	}
-
 	//fmt.Println(port, "open") //INDICATE OPEN PORTS
-
 	defer conn.Close()
+	if result.Service == "" {
+		result.Service = "open"
+	}
 	result.State = true
 	resultChannel <- result
 	return
@@ -106,9 +106,7 @@ func (p *PortScanner) ScanPorts(hostname string, ports Range, threads int) (Scan
 	var scanned ScanResult
 	var wgRight sync.WaitGroup
 	var wgLeft sync.WaitGroup
-
 	runtime.GOMAXPROCS(threads)
-
 	resultChannel := make(chan Result, (ports.End-ports.Start)+1)
 
 	addr, err := netScanner.LookupIP(hostname)
@@ -129,7 +127,6 @@ func (p *PortScanner) ScanPorts(hostname string, ports Range, threads int) (Scan
 	wgLeft.Wait()
 
 	close(resultChannel)
-
 	for result := range resultChannel {
 		results = append(results, result)
 	}
